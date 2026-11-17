@@ -7,7 +7,10 @@
 #include <QString>
 
 // The picker authorizes only the display the user selects for this capture.
-@interface TodoDisplayPicker : NSObject <SCContentSharingPickerObserver>
+@interface TodoDisplayPicker : NSObject <SCContentSharingPickerObserver, SCStreamOutput, SCStreamDelegate>
+@property(strong) SCStream *captureStream;
+@property CGFloat scale;
+@property CGPoint origin;
 @property(copy) void (^finish)(QImage, QPoint, QString);
 @end
 
@@ -30,24 +33,48 @@
     if (@available(macOS 15.2, *)) {
         if (filter.includedDisplays.count) origin = CGDisplayBounds(filter.includedDisplays.firstObject.displayID).origin;
     }
-    [SCScreenshotManager captureImageWithFilter:filter configuration:config completionHandler:^(CGImageRef cg, NSError *error) {
-        QImage image;
-        if (cg) {
-            image = QImage(CGImageGetWidth(cg), CGImageGetHeight(cg), QImage::Format_ARGB32_Premultiplied);
-            CGColorSpaceRef space = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
-            CGContextRef ctx = image.isNull() ? nullptr : CGBitmapContextCreate(image.bits(), image.width(), image.height(), 8, image.bytesPerLine(), space, kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little);
-            CGColorSpaceRelease(space);
-            if (ctx) {
-                CGContextDrawImage(ctx, CGRectMake(0, 0, image.width(), image.height()), cg);
-                CGContextRelease(ctx);
-                image.setDevicePixelRatio(scale);
-            } else image = {};
+    config.pixelFormat = kCVPixelFormatType_32BGRA;
+    config.capturesAudio = NO;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (!self.finish || self.captureStream) return;
+        self.scale = scale;
+        self.origin = origin;
+        SCStream *capture = [[SCStream alloc] initWithFilter:filter configuration:config delegate:self];
+        self.captureStream = capture;
+        NSError *failure = nil;
+        if (![capture addStreamOutput:self type:SCStreamOutputTypeScreen sampleHandlerQueue:dispatch_get_main_queue() error:&failure]) {
+            [self contentSharingPickerStartDidFailWithError:failure];
+            return;
         }
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (self.finish) self.finish(image, QPoint(qRound(origin.x), qRound(origin.y)),
-                error ? QString::fromNSString(error.localizedDescription) : QString());
+        [capture startCaptureWithCompletionHandler:^(NSError *err) {
+            if (err) [self contentSharingPickerStartDidFailWithError:err];
+        }];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 8 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            if (self.finish && self.captureStream == capture)
+                self.finish({}, {}, QStringLiteral("The selected display did not return a frame."));
         });
-    }];
+    });
+}
+
+- (void)stream:(SCStream *)stream didStopWithError:(NSError *)error {
+    [self contentSharingPickerStartDidFailWithError:error];
+}
+
+- (void)stream:(SCStream *)stream didOutputSampleBuffer:(CMSampleBufferRef)sample ofType:(SCStreamOutputType)type {
+    if (!self.finish || type != SCStreamOutputTypeScreen || !CMSampleBufferIsValid(sample)) return;
+    NSArray *attachments = (__bridge NSArray *)CMSampleBufferGetSampleAttachmentsArray(sample, false);
+    NSNumber *status = attachments.firstObject[SCStreamFrameInfoStatus];
+    if (!status || status.integerValue != SCFrameStatusComplete) return;
+    CVPixelBufferRef buffer = CMSampleBufferGetImageBuffer(sample);
+    if (!buffer || CVPixelBufferGetPixelFormatType(buffer) != kCVPixelFormatType_32BGRA ||
+        CVPixelBufferLockBaseAddress(buffer, kCVPixelBufferLock_ReadOnly) != kCVReturnSuccess) return;
+    QImage frame(static_cast<const uchar *>(CVPixelBufferGetBaseAddress(buffer)),
+        CVPixelBufferGetWidth(buffer), CVPixelBufferGetHeight(buffer),
+        CVPixelBufferGetBytesPerRow(buffer), QImage::Format_ARGB32_Premultiplied);
+    QImage copy = frame.copy();
+    CVPixelBufferUnlockBaseAddress(buffer, kCVPixelBufferLock_ReadOnly);
+    copy.setDevicePixelRatio(self.scale);
+    self.finish(copy, QPoint(qRound(self.origin.x), qRound(self.origin.y)), {});
 }
 @end
 
@@ -71,6 +98,10 @@ QImage pickFlameshotDisplay(QPoint &origin, QString &error) {
     [picker presentPickerUsingContentStyle:SCShareableContentStyleDisplay];
     loop.exec();
     observer.finish = nil;
+    if (observer.captureStream) {
+        [observer.captureStream stopCaptureWithCompletionHandler:^(NSError *) {}];
+        observer.captureStream = nil;
+    }
     [picker removeObserver:observer];
     picker.active = NO;
     active = false;

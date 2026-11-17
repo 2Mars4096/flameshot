@@ -72,7 +72,7 @@ if (APPLE)
 
     add_executable(flameshot MACOSX_BUNDLE main.cpp ${APP_ICON_MACOSX} utils/displaypicker.mm)
     set_source_files_properties(utils/displaypicker.mm PROPERTIES LANGUAGE CXX COMPILE_FLAGS "-x objective-c++ -fobjc-arc")
-    target_link_libraries(flameshot "-framework ScreenCaptureKit")
+    target_link_libraries(flameshot "-framework ScreenCaptureKit" "-framework CoreMedia" "-framework CoreVideo")
 else ()
     add_executable(flameshot)
 endif ()
