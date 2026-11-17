@@ -218,6 +218,7 @@ void reinitializeAsQApplication(int& argc,
 #include "widgets/capture/capturewidget.h"
 
 // LaunchServices delivers these requests to the resident GUI, including at cold start.
+bool stickyTodoHostRunning();
 class StickyTodoRequests final : public QObject {
 protected:
     bool eventFilter(QObject* object, QEvent* event) override {
@@ -265,6 +266,13 @@ int main(int argc, char* argv[])
 #ifdef Q_OS_MACOS
         StickyTodoRequests todoRequests;
         app.installEventFilter(&todoRequests);
+        QTimer hostLifetime;
+        if (QCoreApplication::applicationDirPath().contains("/Contents/Helpers/Flameshot.app/")) {
+            QObject::connect(&hostLifetime, &QTimer::timeout, &app, [&app] {
+                if (!stickyTodoHostRunning()) app.quit();
+            });
+            hostLifetime.start(2000);
+        }
 #endif
         configureTranslation(translator, qtTranslator);
 

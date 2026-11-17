@@ -398,6 +398,9 @@ void FlameshotDaemon::initTrayIcon()
 
 void FlameshotDaemon::enableTrayIcon(bool enable)
 {
+#ifdef Q_OS_MACOS
+    if (QCoreApplication::applicationDirPath().contains("/Contents/Helpers/Flameshot.app/")) return;
+#endif
     if (enable) {
         if (m_trayIcon == nullptr) {
             m_trayIcon = new TrayIcon();

@@ -57,6 +57,7 @@ void raiseAboveMenuBar(QWidget* widget)
 } // namespace
 
 #include <CoreGraphics/CoreGraphics.h>
+QImage pickFlameshotDisplay(QPoint&, QString&);
 #endif
 
 #include "config/cacheutils.h"
@@ -139,12 +140,17 @@ CaptureWidget* Flameshot::gui(const CaptureRequest& req)
         return nullptr;
     }
 
+    QImage pickedImage;
+    QPoint displayOrigin;
 #ifdef Q_OS_MACOS
-    // Opening settings or starting the hotkey listener does not require screen access.
-    static bool requested = false;
-    if (!CGPreflightScreenCaptureAccess() && !requested) {
-        requested = true;
-        CGRequestScreenCaptureAccess();
+    if (!CGPreflightScreenCaptureAccess()) {
+        QString error;
+        pickedImage = pickFlameshotDisplay(displayOrigin, error);
+        if (pickedImage.isNull()) {
+            if (!error.isEmpty()) QMessageBox::warning(nullptr, tr("Screen capture"), error);
+            emit captureFailed();
+            return nullptr;
+        }
     }
 #endif
     CaptureRequest request = req;
@@ -187,7 +193,7 @@ CaptureWidget* Flameshot::gui(const CaptureRequest& req)
             return nullptr;
         }
 
-        m_captureWindow = new CaptureWidget(request);
+        m_captureWindow = new CaptureWidget(request, true, nullptr, pickedImage, displayOrigin);
 
 #ifdef Q_OS_WIN
         m_captureWindow->show();

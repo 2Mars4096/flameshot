@@ -55,7 +55,7 @@ auto const MOUSE_WHEEL_TRESHOLD = 60;
 
 CaptureWidget::CaptureWidget(const CaptureRequest& req,
                              bool fullScreen,
-                             QWidget* parent)
+                             QWidget* parent, QImage pickedImage, QPoint displayOrigin)
   : QWidget(parent)
   , m_toolSizeByKeyboard(0)
   , m_mouseIsClicked(false)
@@ -123,14 +123,14 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
             preSelectedMonitor = -1;
         }
         m_context.screenshot =
-          grabber.grabEntireDesktop(ok, preSelectedMonitor);
+          pickedImage.isNull() ? grabber.grabEntireDesktop(ok, preSelectedMonitor) : QPixmap::fromImage(pickedImage);
         if (!ok) {
             // Error already logged in ScreenGrabber
             this->close();
         }
         m_context.origScreenshot = m_context.screenshot;
 
-        selectedScreen = grabber.getSelectedScreen();
+        selectedScreen = pickedImage.isNull() ? grabber.getSelectedScreen() : QGuiApplication::screenAt(displayOrigin + QPoint(1, 1));
 
 #if defined(Q_OS_WIN)
 #if !defined(FLAMESHOT_DEBUG_CAPTURE)
@@ -171,7 +171,7 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
             setWindowFlags(Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint |
                            Qt::Tool);
         }
-        QScreen* currentScreen = QGuiAppCurrentScreen().currentScreen();
+        QScreen* currentScreen = selectedScreen ? selectedScreen : QGuiAppCurrentScreen().currentScreen();
         move(currentScreen->geometry().x(), currentScreen->geometry().y());
         resize(currentScreen->size());
 // LINUX
