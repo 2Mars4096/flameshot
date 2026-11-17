@@ -470,6 +470,15 @@ void CaptureWidget::showxywh()
 
 void CaptureWidget::initHelpMessage()
 {
+    if (m_context.request.tasks() & CaptureRequest::ACCEPT_ON_SELECT) {
+        // This mode completes on release, before the editing tools appear.
+        const QString action = qEnvironmentVariableIsSet("STICKY_TODO_CAPTURE")
+          ? tr("Drag over the task text")
+          : tr("Drag to capture an area");
+        m_helpMessage = action.toHtmlEscaped() + QStringLiteral("<br>") +
+                        tr("Esc to cancel").toHtmlEscaped();
+        return;
+    }
     QList<QPair<QString, QString>> keyMap;
     keyMap << std::pair(tr("Mouse"), tr("Select screenshot area"));
     using CT = CaptureTool;
@@ -614,6 +623,7 @@ void CaptureWidget::uncheckActiveTool()
 {
     // uncheck active tool
     m_panel->setToolWidget(nullptr);
+    m_activeButton->setChecked(false);
     m_activeButton->setColor(m_uiColor);
     updateTool(activeButtonTool());
     m_activeButton = nullptr;
@@ -1421,14 +1431,17 @@ void CaptureWidget::setState(CaptureToolButton* b)
     if (b->tool()->isSelectable()) {
         if (m_activeButton != b) {
             if (m_activeButton) {
+                m_activeButton->setChecked(false);
                 m_activeButton->setColor(m_uiColor);
             }
             m_activeButton = b;
+            m_activeButton->setChecked(true);
             m_activeButton->setColor(m_contrastUiColor);
             m_panel->setActiveLayer(-1);
             m_panel->setToolWidget(b->tool()->configurationWidget());
         } else if (m_activeButton) {
             m_panel->clearToolWidget();
+            m_activeButton->setChecked(false);
             m_activeButton->setColor(m_uiColor);
             m_activeButton = nullptr;
         }

@@ -25,9 +25,7 @@ OverlayMessage::OverlayMessage(QWidget* parent, const QRect& targetArea)
     int opacity = ConfigHandler().contrastOpacity();
     m_textColor =
       (ColorUtils::colorIsDark(m_fillColor) ? Qt::white : Qt::black);
-    // map a background opacity range 0-255 to a fill opacity range 190-160
-    // we do this because an opaque background makes the box look opaque too
-    m_fillColor.setAlpha(160 + (180 - 220) / (255.0 - 0) * (opacity - 255));
+    m_fillColor.setAlpha(242 - opacity / 32);
     setStyleSheet(
       QStringLiteral("QLabel { color: %1; }").arg(m_textColor.name()));
 
@@ -104,7 +102,9 @@ void OverlayMessage::paintEvent(QPaintEvent* e)
     painter.setRenderHint(QPainter::Antialiasing);
 
     painter.setBrush(QBrush(m_fillColor, Qt::SolidPattern));
-    painter.setPen(QPen(m_textColor, 1.5));
+    QColor edge = m_textColor;
+    edge.setAlpha(90);
+    painter.setPen(QPen(edge, 1));
     float margin = painter.pen().widthF();
     painter.drawRoundedRect(
       rect() - QMarginsF(margin, margin, margin, margin), 5, 5);

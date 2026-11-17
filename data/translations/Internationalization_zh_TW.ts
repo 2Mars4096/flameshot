@@ -205,6 +205,18 @@
 <context>
     <name>CaptureWidget</name>
     <message>
+        <source>Drag over the task text</source>
+        <translation>拖曳選取任務文字</translation>
+    </message>
+    <message>
+        <source>Drag to capture an area</source>
+        <translation>拖曳選取截圖區域</translation>
+    </message>
+    <message>
+        <source>Esc to cancel</source>
+        <translation>按 Esc 取消</translation>
+    </message>
+    <message>
         <source>Unable to capture screen</source>
         <translation type="vanished">無法擷取螢幕</translation>
     </message>

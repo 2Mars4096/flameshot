@@ -3,7 +3,6 @@
 
 #include "capturebutton.h"
 #include "utils/colorutils.h"
-#include "utils/globalvalues.h"
 
 #include <QGraphicsDropShadowEffect>
 
@@ -33,9 +32,9 @@ void CaptureButton::init()
     setFocusPolicy(Qt::NoFocus);
 
     auto* dsEffect = new QGraphicsDropShadowEffect(this);
-    dsEffect->setBlurRadius(5);
-    dsEffect->setOffset(0);
-    dsEffect->setColor(QColor(Qt::black));
+    dsEffect->setBlurRadius(4);
+    dsEffect->setOffset(0, 1);
+    dsEffect->setColor(QColor(40, 32, 12, 75));
 
     setGraphicsEffect(dsEffect);
 }
@@ -47,23 +46,16 @@ QString CaptureButton::globalStyleSheet()
 
 QString CaptureButton::styleSheet() const
 {
-    QString baseSheet = "CaptureButton { border: none;"
-                        "padding: 3px 8px;"
-                        "background-color: %1; color: %4 }"
-                        "CaptureToolButton { border-radius: %3;"
-                        "padding: 0; }"
-                        "CaptureButton:hover { background-color: %2; }"
-                        "CaptureButton:pressed:!hover { "
-                        "background-color: %1; }";
-    // define color when mouse is hovering
-    QColor contrast = ColorUtils::contrastColor(m_mainColor);
-    // foreground color
-    QColor color = ColorUtils::colorIsDark(m_mainColor) ? Qt::white : Qt::black;
-
-    return baseSheet.arg(m_mainColor.name(),
-                         contrast.name(),
-                         QString::number(GlobalValues::buttonBaseSize() / 2),
-                         color.name());
+    const bool dark = ColorUtils::colorIsDark(m_mainColor);
+    const QColor edge = dark ? m_mainColor.lighter(150) : m_mainColor.darker(140);
+    const QColor hover = dark ? m_mainColor.lighter(120) : m_mainColor.darker(108);
+    const QColor ink = dark ? QColor(Qt::white) : QColor(61, 53, 32);
+    return QStringLiteral("CaptureButton { border: 1px solid %1; border-radius: 6px;"
+                          "padding: 3px 8px; background-color: %2; color: %3; }"
+                          "CaptureToolButton { padding: 0; }"
+                          "CaptureButton:hover { background-color: %4; }"
+                          "CaptureButton:pressed, CaptureToolButton:checked { border: 2px solid %3; }")
+      .arg(edge.name(), m_mainColor.name(), ink.name(), hover.name());
 }
 
 void CaptureButton::setColor(const QColor& c)

@@ -48,7 +48,7 @@ private:
 
     QPropertyAnimation* m_emergeAnimation;
 
-    static QColor m_mainColor;
+    QColor m_mainColor;
 
     void initButton();
     void updateIcon();

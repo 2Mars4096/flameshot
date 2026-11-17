@@ -47,11 +47,8 @@ void CaptureToolButton::initButton()
     m_tool = ToolFactory().CreateTool(m_buttonType, this);
 
     resize(GlobalValues::buttonBaseSize(), GlobalValues::buttonBaseSize());
-    setMask(QRegion(QRect(-1,
-                          -1,
-                          GlobalValues::buttonBaseSize() + 2,
-                          GlobalValues::buttonBaseSize() + 2),
-                    QRegion::Ellipse));
+    setAccessibleName(m_tool->name());
+    setCheckable(m_tool->isSelectable());
 
     // Set a tooltip showing a shortcut in parentheses (if there is a shortcut)
     QString tooltip = m_tool->description();
@@ -127,8 +124,6 @@ void CaptureToolButton::setColor(const QColor& c)
     CaptureButton::setColor(c);
     updateIcon();
 }
-
-QColor CaptureToolButton::m_mainColor;
 
 static std::map<CaptureTool::Type, int> buttonTypeOrder
 {
