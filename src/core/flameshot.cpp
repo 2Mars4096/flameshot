@@ -106,12 +106,6 @@ Flameshot::Flameshot()
     QString StyleSheet = CaptureButton::globalStyleSheet();
     qApp->setStyleSheet(StyleSheet);
 
-#if defined(Q_OS_MACOS)
-    // Request Screen Recording permission via the proper CoreGraphics API
-    if (!CGPreflightScreenCaptureAccess()) {
-        CGRequestScreenCaptureAccess();
-    }
-#endif
 #if (defined(Q_OS_MACOS) || defined(Q_OS_WIN))
     // The resident application owns the system shortcut. Transient editors must not compete for it.
     if (QCoreApplication::arguments().size() == 1) {
@@ -145,6 +139,14 @@ CaptureWidget* Flameshot::gui(const CaptureRequest& req)
         return nullptr;
     }
 
+#ifdef Q_OS_MACOS
+    // Opening settings or starting the hotkey listener does not require screen access.
+    static bool requested = false;
+    if (!CGPreflightScreenCaptureAccess() && !requested) {
+        requested = true;
+        CGRequestScreenCaptureAccess();
+    }
+#endif
     CaptureRequest request = req;
     if (request.captureMode() == CaptureRequest::GRAPHICAL_MODE &&
         request.initialSelection().isNull() &&

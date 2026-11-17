@@ -55,7 +55,8 @@ CaptureTool* AcceptTool::copy(QObject* parent)
 void AcceptTool::pressed(CaptureContext& context)
 {
 #ifdef Q_OS_MACOS
-    if (context.request.tasks() == CaptureRequest::NO_TASK) {
+    if (context.request.tasks() == CaptureRequest::NO_TASK ||
+        (context.request.tasks() & CaptureRequest::SEND_TO_TODO)) {
         QTemporaryFile png(QDir::temp().filePath("sticky-todo-capture-XXXXXX.png"));
         if (!png.open() || !context.selectedScreenshotArea().save(&png, "PNG") || !png.flush()) {
             QMessageBox::warning(nullptr, tr("Send to Todo"), tr("Could not prepare the selected image."));

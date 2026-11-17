@@ -350,7 +350,8 @@ void CaptureWidget::initButtons()
             visibleButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
         }
     } else {
-        const bool todoCapture = qEnvironmentVariableIsSet("STICKY_TODO_CAPTURE");
+        const bool todoCapture = qEnvironmentVariableIsSet("STICKY_TODO_CAPTURE") ||
+                                 (m_context.request.tasks() & CaptureRequest::SEND_TO_TODO);
         if (todoCapture && !visibleButtonTypes.contains(CaptureTool::TYPE_ACCEPT)) {
             visibleButtonTypes.append(CaptureTool::TYPE_ACCEPT);
         }
@@ -375,7 +376,8 @@ void CaptureWidget::initButtons()
         auto* b = new CaptureToolButton(t, this);
         b->setColor(m_uiColor);
 #ifdef Q_OS_MACOS
-        if (t == CaptureTool::TYPE_ACCEPT && m_context.request.tasks() == CaptureRequest::NO_TASK) {
+        if (t == CaptureTool::TYPE_ACCEPT && (m_context.request.tasks() == CaptureRequest::NO_TASK ||
+                                             (m_context.request.tasks() & CaptureRequest::SEND_TO_TODO))) {
             b->setText(QStringLiteral("Todo"));
             b->setIcon(QIcon());
             b->setToolTip(tr("Send to Todo"));

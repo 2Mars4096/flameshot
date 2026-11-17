@@ -212,6 +212,40 @@ void reinitializeAsQApplication(int& argc,
     configureApp(true, translator, qtTranslator);
 }
 
+#ifdef Q_OS_MACOS
+#include <QFileOpenEvent>
+#include <QProcess>
+#include "widgets/capture/capturewidget.h"
+
+// LaunchServices delivers these requests to the resident GUI, including at cold start.
+class StickyTodoRequests final : public QObject {
+protected:
+    bool eventFilter(QObject* object, QEvent* event) override {
+        if (event->type() != QEvent::FileOpen) return QObject::eventFilter(object, event);
+        const auto url = static_cast<QFileOpenEvent*>(event)->url();
+        if (url == QUrl("flameshot-sticky://settings")) {
+            QTimer::singleShot(0, [] { Flameshot::instance()->config(); });
+            return true;
+        }
+        if (url != QUrl("flameshot-sticky://capture")) return false;
+        QTimer::singleShot(300, [] {
+            auto restore = [] {
+                QProcess::startDetached("/usr/bin/open", {"-g", "-a", "/Applications/Sticky Todo.app",
+                                                          "todo-sticky://capture-ended"});
+            };
+            CaptureRequest req(CaptureRequest::GRAPHICAL_MODE);
+            req.addTask(CaptureRequest::SEND_TO_TODO);
+            if (auto *widget = Flameshot::instance()->gui(req)) {
+                QObject::connect(widget, &QObject::destroyed, qApp, restore);
+            } else {
+                restore();
+            }
+        });
+        return true;
+    }
+};
+#endif
+
 int main(int argc, char* argv[])
 {
 
@@ -228,6 +262,10 @@ int main(int argc, char* argv[])
     // no arguments, just launch Flameshot
     if (argc == 1) {
         QApplication app(argc, argv);
+#ifdef Q_OS_MACOS
+        StickyTodoRequests todoRequests;
+        app.installEventFilter(&todoRequests);
+#endif
         configureTranslation(translator, qtTranslator);
 
 #ifdef USE_KDSINGLEAPPLICATION
