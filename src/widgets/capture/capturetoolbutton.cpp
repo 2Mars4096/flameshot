@@ -74,6 +74,7 @@ void CaptureToolButton::initButton()
 
 void CaptureToolButton::updateIcon()
 {
+    if (!text().isEmpty()) return; // Text action tiles keep their label as they animate.
     setIcon(icon());
     setIconSize(size() * 0.6);
 }

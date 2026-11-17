@@ -376,6 +376,8 @@ void CaptureWidget::initButtons()
         b->setColor(m_uiColor);
 #ifdef Q_OS_MACOS
         if (t == CaptureTool::TYPE_ACCEPT && m_context.request.tasks() == CaptureRequest::NO_TASK) {
+            b->setText(QStringLiteral("Todo"));
+            b->setIcon(QIcon());
             b->setToolTip(tr("Send to Todo"));
             b->setAccessibleName(tr("Send to Todo"));
         }
