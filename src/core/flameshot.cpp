@@ -506,7 +506,14 @@ void Flameshot::exportCapture(const QPixmap& capture,
     }
 
     if (tasks & CR::COPY) {
-        FlameshotDaemon::copyToClipboard(capture);
+#if defined(Q_OS_MACOS)
+        if (qEnvironmentVariableIsSet("STICKY_TODO_CAPTURE")) {
+            saveToClipboard(capture);
+        } else
+#endif
+        {
+            FlameshotDaemon::copyToClipboard(capture);
+        }
     }
 
     if (tasks & CR::PIN) {

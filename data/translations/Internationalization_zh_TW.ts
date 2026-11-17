@@ -27,6 +27,10 @@
 <context>
     <name>AcceptTool</name>
     <message>
+        <source>Use screenshot in Sticky Todo</source>
+        <translation>在 Sticky Todo 中使用截圖</translation>
+    </message>
+    <message>
         <location filename="../../src/tools/accept/accepttool.cpp" line="31"/>
         <source>Accept</source>
         <translation>接受</translation>

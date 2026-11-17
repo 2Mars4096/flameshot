@@ -38,7 +38,9 @@ CaptureTool::Type AcceptTool::type() const
 
 QString AcceptTool::description() const
 {
-    return tr("Accept the capture");
+    return qEnvironmentVariableIsSet("STICKY_TODO_CAPTURE")
+             ? tr("Use screenshot in Sticky Todo")
+             : tr("Accept the capture");
 }
 
 CaptureTool* AcceptTool::copy(QObject* parent)

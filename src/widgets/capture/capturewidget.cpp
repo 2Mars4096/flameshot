@@ -340,10 +340,16 @@ void CaptureWidget::initButtons()
         allButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
         visibleButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
     } else {
-        // Remove irrelevant buttons from both lists
+        const bool todoCapture = qEnvironmentVariableIsSet("STICKY_TODO_CAPTURE");
+        if (todoCapture && !visibleButtonTypes.contains(CaptureTool::TYPE_ACCEPT)) {
+            visibleButtonTypes.append(CaptureTool::TYPE_ACCEPT);
+        }
+        // Keep the user-configured Save and Copy actions in the embedded editor.
         for (auto* buttonList : { &allButtonTypes, &visibleButtonTypes }) {
-            buttonList->removeOne(CaptureTool::TYPE_SAVE);
-            buttonList->removeOne(CaptureTool::TYPE_COPY);
+            if (!todoCapture) {
+                buttonList->removeOne(CaptureTool::TYPE_SAVE);
+                buttonList->removeOne(CaptureTool::TYPE_COPY);
+            }
 #ifdef ENABLE_IMGUR
             buttonList->removeOne(CaptureTool::TYPE_IMAGEUPLOADER);
 #endif
