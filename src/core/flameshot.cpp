@@ -113,13 +113,15 @@ Flameshot::Flameshot()
     }
 #endif
 #if (defined(Q_OS_MACOS) || defined(Q_OS_WIN))
-    // Set global shortcuts for MacOS or Windows
-    m_HotkeyScreenshotCapture = new QHotkey(
-      QKeySequence(ConfigHandler().shortcut("TAKE_SCREENSHOT")), true, this);
-    QObject::connect(m_HotkeyScreenshotCapture,
-                     &QHotkey::activated,
-                     qApp,
-                     [this]() { gui(); });
+    // The resident application owns the system shortcut. Transient editors must not compete for it.
+    if (QCoreApplication::arguments().size() == 1) {
+        m_HotkeyScreenshotCapture = new QHotkey(
+          QKeySequence(ConfigHandler().shortcut("TAKE_SCREENSHOT")), true, this);
+        QObject::connect(m_HotkeyScreenshotCapture, &QHotkey::activated, qApp, [this]() { gui(); });
+        if (!m_HotkeyScreenshotCapture->isRegistered()) {
+            AbstractLogger::error() << tr("Could not register the capture shortcut. Check for a conflicting system or application shortcut.");
+        }
+    }
 #endif
 #if (defined(Q_OS_MACOS) && ENABLE_IMGUR)
     m_HotkeyScreenshotHistory = new QHotkey(

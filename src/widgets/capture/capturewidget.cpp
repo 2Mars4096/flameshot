@@ -1,3 +1,4 @@
+#include <QFileInfo>
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
@@ -337,8 +338,17 @@ void CaptureWidget::initButtons()
     auto visibleButtonTypes = m_config.buttons();
     if ((m_context.request.tasks() == CaptureRequest::NO_TASK) ||
         (m_context.request.tasks() == CaptureRequest::PRINT_GEOMETRY)) {
-        allButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
-        visibleButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
+#ifdef Q_OS_MACOS
+        if (m_context.request.tasks() == CaptureRequest::NO_TASK &&
+            QFileInfo::exists("/Applications/Sticky Todo.app")) {
+            if (!visibleButtonTypes.contains(CaptureTool::TYPE_ACCEPT))
+                visibleButtonTypes.append(CaptureTool::TYPE_ACCEPT);
+        } else
+#endif
+        {
+            allButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
+            visibleButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
+        }
     } else {
         const bool todoCapture = qEnvironmentVariableIsSet("STICKY_TODO_CAPTURE");
         if (todoCapture && !visibleButtonTypes.contains(CaptureTool::TYPE_ACCEPT)) {
@@ -364,6 +374,12 @@ void CaptureWidget::initButtons()
     for (CaptureTool::Type t : allButtonTypes) {
         auto* b = new CaptureToolButton(t, this);
         b->setColor(m_uiColor);
+#ifdef Q_OS_MACOS
+        if (t == CaptureTool::TYPE_ACCEPT && m_context.request.tasks() == CaptureRequest::NO_TASK) {
+            b->setToolTip(tr("Send to Todo"));
+            b->setAccessibleName(tr("Send to Todo"));
+        }
+#endif
         b->hide();
         // must be enabled for SelectionWidget's eventFilter to work correctly
         b->setAttribute(Qt::WA_NoMousePropagation);
@@ -379,6 +395,8 @@ void CaptureWidget::initButtons()
                 // Set shortcuts for a tool
                 QString shortcut =
                   ConfigHandler().shortcut(QVariant::fromValue(t).toString());
+                if (t == CaptureTool::TYPE_ACCEPT && m_context.request.tasks() == CaptureRequest::NO_TASK)
+                    break; // Ordinary capture only sends through its explicit toolbar action.
                 if (!shortcut.isNull()) {
                     auto shortcuts = newShortcut(shortcut, this, nullptr);
                     for (auto* sc : shortcuts) {
@@ -492,6 +510,8 @@ void CaptureWidget::initHelpMessage()
         if (!m_tools.contains(toolType)) {
             continue;
         }
+        if (toolType == CT::TYPE_ACCEPT && m_context.request.tasks() == CaptureRequest::NO_TASK)
+            continue;
         auto* tool = m_tools[toolType];
         QString shortcut =
           ConfigHandler().shortcut(QVariant::fromValue(toolType).toString());
